@@ -1,6 +1,9 @@
 const CACHE_NAME = 'ac-board-v1';
-const urlsToCache = ['/', '/index.html'];
-
+const urlsToCache = [
+  '/board/',
+  '/board/index.html',
+  '/board/manifest.json'
+];
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
