@@ -1,8 +1,9 @@
-const CACHE_NAME = 'ac-board-v1';
+const CACHE_NAME = 'ac-board-v2';
 const urlsToCache = [
-  '/board/',
-  '/board/index.html',
-  '/board/manifest.json'
+  './',
+  './index.html',
+  './manifest.json',
+  './sw.js'
 ];
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -20,7 +21,7 @@ self.addEventListener('fetch', event => {
           return fetchRes;
         });
       });
-    }).catch(() => caches.match('/index.html'))
+    }).catch(() => caches.match('./index.html'))
   );
 });
 
@@ -30,4 +31,5 @@ self.addEventListener('activate', event => {
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     )
   );
+  self.clients.claim();
 });
