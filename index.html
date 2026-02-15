@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e1a">
+<link rel="manifest" href="manifest.json">
+<title>AC Board Study Tool</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+--bg:#0a0e1a;--surface:#111827;--surface2:#1a2236;--surface3:#222d44;
+--cyan:#00d4ff;--orange:#ff6b35;--green:#00e676;--red:#ff4757;--yellow:#ffd32a;
+--text:#e8eaf0;--text2:#8892a8;--text3:#5a6480;
+--radius:14px;--font:'JetBrains Mono',ui-monospace,monospace;
+}
+@font-face{font-family:'JetBrains Mono';src:url('https://fonts.gstatic.com/s/jetbrainsmono/v18/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPVmUsaaDhw.woff2')format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url('https://fonts.gstatic.com/s/jetbrainsmono/v18/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjDV6UsaaDhw.woff2')format('woff2');font-weight:700;font-display:swap}
+html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text)}
+body{display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}
+
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border-bottom:1px solid rgba(0,212,255,.15);flex-shrink:0;z-index:100}
+.header h1{font-size:15px;letter-spacing:1.5px;color:var(--cyan);font-weight:700}
+.header h1 span{color:var(--orange)}
+.header-btns{display:flex;gap:8px}
+.hdr-btn{background:none;border:1px solid var(--text3);color:var(--text2);padding:6px 10px;border-radius:8px;font:12px var(--font);cursor:pointer;transition:.2s}
+.hdr-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.08)}
+.hdr-btn:active{transform:scale(.95)}
+
+/* Stats bar */
+.stats{display:flex;gap:0;padding:0 16px;background:var(--surface);border-bottom:1px solid rgba(0,212,255,.08);flex-shrink:0}
+.stat{flex:1;text-align:center;padding:8px 4px;font-size:10px;color:var(--text3);letter-spacing:.5px;text-transform:uppercase}
+.stat b{display:block;font-size:16px;color:var(--text);margin-bottom:2px}
+.stat b.cyan{color:var(--cyan)}.stat b.green{color:var(--green)}.stat b.orange{color:var(--orange)}
+
+/* Category pills */
+.cats{display:flex;gap:6px;padding:10px 16px;overflow-x:auto;flex-shrink:0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cat-pill{white-space:nowrap;padding:6px 12px;border-radius:20px;font-size:11px;border:1px solid var(--text3);color:var(--text2);cursor:pointer;transition:.2s;background:transparent;font-family:var(--font);flex-shrink:0}
+.cat-pill.active{background:var(--cyan);color:var(--bg);border-color:var(--cyan);font-weight:700}
+.cat-pill .count{opacity:.6;margin-left:4px}
+
+/* Search */
+.search-wrap{padding:0 16px 8px;flex-shrink:0}
+.search-input{width:100%;background:var(--surface2);border:1px solid var(--text3);border-radius:10px;padding:10px 14px 10px 36px;color:var(--text);font:13px var(--font);outline:none;transition:.2s}
+.search-input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,212,255,.1)}
+.search-wrap{position:relative}
+.search-wrap::before{content:'⌕';position:absolute;left:28px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;pointer-events:none}
+
+/* Main content area */
+.main{flex:1;overflow:hidden;position:relative}
+
+/* BROWSE MODE */
+.browse{height:100%;overflow-y:auto;padding:8px 16px 100px;-webkit-overflow-scrolling:touch}
+.qa-item{background:var(--surface);border-radius:var(--radius);margin-bottom:8px;overflow:hidden;border:1px solid transparent;transition:.2s}
+.qa-item.flagged{border-color:var(--orange)}
+.qa-q{padding:14px 16px;font-size:13px;color:var(--text);line-height:1.5;cursor:pointer;display:flex;align-items:flex-start;gap:10px}
+.qa-q::before{content:'Q';flex-shrink:0;width:22px;height:22px;background:var(--cyan);color:var(--bg);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-top:1px}
+.qa-a{padding:0 16px 14px 48px;font-size:12px;color:var(--text2);line-height:1.6;display:none}
+.qa-item.open .qa-a{display:block}
+.qa-a.revealed{display:block}
+.qa-cat-tag{font-size:9px;color:var(--text3);padding:0 16px 10px 48px;letter-spacing:.5px;text-transform:uppercase}
+.qa-actions{display:flex;gap:6px;padding:0 16px 12px 48px}
+.qa-btn{background:var(--surface2);border:none;color:var(--text2);padding:4px 10px;border-radius:6px;font:10px var(--font);cursor:pointer}
+.qa-btn.flagged{color:var(--orange);background:rgba(255,107,53,.1)}
+.qa-btn.known{color:var(--green);background:rgba(0,230,118,.1)}
+
+/* FLASHCARD MODE */
+.flashcard-wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;display:none}
+.flashcard{width:100%;max-width:400px;min-height:300px;background:var(--surface);border-radius:20px;border:1px solid rgba(0,212,255,.15);padding:30px 24px;display:flex;flex-direction:column;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.4);transition:transform .3s,opacity .3s;touch-action:pan-y}
+.fc-cat{font-size:10px;color:var(--cyan);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px}
+.fc-q{font-size:15px;line-height:1.6;color:var(--text);flex:1}
+.fc-a{font-size:13px;line-height:1.6;color:var(--text2);margin-top:16px;padding-top:16px;border-top:1px solid var(--surface3);display:none}
+.fc-a.show{display:block}
+.fc-tap{text-align:center;color:var(--text3);font-size:11px;margin-top:16px}
+.fc-nav{display:flex;gap:12px;margin-top:20px;width:100%;max-width:400px}
+.fc-nav button{flex:1;padding:14px;border-radius:12px;border:none;font:13px/1 var(--font);font-weight:700;cursor:pointer;transition:.2s}
+.fc-nav button:active{transform:scale(.96)}
+.fc-prev{background:var(--surface2);color:var(--text2)}
+.fc-know{background:rgba(0,230,118,.12);color:var(--green);border:1px solid rgba(0,230,118,.3) !important}
+.fc-next{background:var(--cyan);color:var(--bg)}
+.fc-flag{position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;opacity:.4;transition:.2s}
+.fc-flag.active{opacity:1}
+.fc-counter{text-align:center;color:var(--text3);font-size:11px;margin-top:12px}
+
+/* QUIZ MODE */
+.quiz-wrap{height:100%;display:flex;flex-direction:column;padding:20px;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:100px}
+.quiz-progress{height:4px;background:var(--surface2);border-radius:2px;margin-bottom:20px;overflow:hidden}
+.quiz-bar{height:100%;background:var(--cyan);border-radius:2px;transition:width .3s}
+.quiz-card{background:var(--surface);border-radius:var(--radius);padding:24px;margin-bottom:16px}
+.quiz-label{font-size:10px;color:var(--cyan);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.quiz-q{font-size:14px;line-height:1.6;margin-bottom:20px}
+.quiz-reveal-btn{width:100%;padding:14px;background:var(--surface2);border:1px solid var(--text3);border-radius:12px;color:var(--text);font:13px var(--font);cursor:pointer;transition:.2s}
+.quiz-reveal-btn:active{transform:scale(.98)}
+.quiz-answer{font-size:13px;line-height:1.6;color:var(--text2);padding:16px;background:var(--surface2);border-radius:12px;margin-top:12px;display:none;border-left:3px solid var(--cyan)}
+.quiz-answer.show{display:block}
+.quiz-rate{display:flex;gap:8px;margin-top:12px;display:none}
+.quiz-rate.show{display:flex}
+.quiz-rate button{flex:1;padding:12px 8px;border-radius:10px;border:none;font:12px var(--font);font-weight:700;cursor:pointer}
+.quiz-rate .qr-miss{background:rgba(255,71,87,.12);color:var(--red)}
+.quiz-rate .qr-ok{background:rgba(255,211,42,.12);color:var(--yellow)}
+.quiz-rate .qr-got{background:rgba(0,230,118,.12);color:var(--green)}
+
+/* Bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--surface);border-top:1px solid rgba(0,212,255,.1);padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;color:var(--text3);font-size:9px;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:.2s;background:none;border:none;font-family:var(--font)}
+.nav-item.active{color:var(--cyan)}
+.nav-icon{font-size:18px}
+
+/* Settings overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.overlay-content{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:500px;max-height:70vh;overflow-y:auto;padding:24px 20px calc(20px + env(safe-area-inset-bottom))}
+.overlay-title{font-size:14px;color:var(--cyan);letter-spacing:1px;margin-bottom:16px;text-transform:uppercase}
+.overlay-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--surface3)}
+.overlay-row label{font-size:12px;color:var(--text)}
+.overlay-close{width:100%;padding:14px;background:var(--surface2);border:none;color:var(--text);border-radius:12px;font:13px var(--font);margin-top:16px;cursor:pointer}
+.toggle{width:44px;height:24px;background:var(--text3);border-radius:12px;position:relative;cursor:pointer;transition:.2s;border:none}
+.toggle.on{background:var(--cyan)}
+.toggle::after{content:'';position:absolute;width:20px;height:20px;background:#fff;border-radius:50%;top:2px;left:2px;transition:.2s}
+.toggle.on::after{left:22px}
+
+.hidden{display:none !important}
+.swipe-left{transform:translateX(-100px);opacity:0}
+.swipe-right{transform:translateX(100px);opacity:0}
+
+@media(min-width:600px){
+  .flashcard{min-height:380px}
+  .browse{padding:12px 24px 100px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AC <span>BOARD</span></h1>
+  <div class="header-btns">
+    <button class="hdr-btn" onclick="toggleFlagged()" id="flagFilter">★ Flagged</button>
+    <button class="hdr-btn" onclick="showSettings()">⚙</button>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><b class="cyan" id="totalCount">0</b>Total</div>
+  <div class="stat"><b class="green" id="knownCount">0</b>Known</div>
+  <div class="stat"><b class="orange" id="flagCount">0</b>Flagged</div>
+  <div class="stat"><b id="pctCount">0%</b>Progress</div>
+</div>
+
+<div class="cats" id="catBar"></div>
+
+<div class="search-wrap">
+  <input type="text" class="search-input" id="searchInput" placeholder="Search questions...">
+</div>
+
+<div class="main">
+  <!-- Browse Mode -->
+  <div class="browse" id="browseView"></div>
+  <!-- Flashcard Mode -->
+  <div class="flashcard-wrap" id="flashView">
+    <div class="flashcard" id="flashcard">
+      <button class="fc-flag" id="fcFlag" onclick="toggleFlagCurrent()">★</button>
+      <div class="fc-cat" id="fcCat"></div>
+      <div class="fc-q" id="fcQ"></div>
+      <div class="fc-a" id="fcA"></div>
+      <div class="fc-tap">Tap card to reveal answer</div>
+    </div>
+    <div class="fc-nav">
+      <button class="fc-prev" onclick="fcPrev()">← Prev</button>
+      <button class="fc-know" onclick="fcKnow()">✓ Know</button>
+      <button class="fc-next" onclick="fcNext()">Next →</button>
+    </div>
+    <div class="fc-counter" id="fcCounter"></div>
+  </div>
+  <!-- Quiz Mode -->
+  <div class="quiz-wrap" id="quizView"></div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="setMode('browse')" id="navBrowse"><span class="nav-icon">☰</span>Browse</button>
+  <button class="nav-item" onclick="setMode('flash')" id="navFlash"><span class="nav-icon">▢</span>Cards</button>
+  <button class="nav-item" onclick="setMode('quiz')" id="navQuiz"><span class="nav-icon">✎</span>Quiz</button>
+</nav>
+
+<div class="overlay" id="settingsOverlay">
+  <div class="overlay-content">
+    <div class="overlay-title">Settings</div>
+    <div class="overlay-row"><label>Shuffle cards</label><button class="toggle on" id="shuffleToggle" onclick="toggleShuffle(this)"></button></div>
+    <div class="overlay-row"><label>Show category tags</label><button class="toggle on" id="catTagToggle" onclick="toggleCatTags(this)"></button></div>
+    <div class="overlay-row"><label>Quiz: 10 questions</label><button class="toggle" id="quiz10Toggle" onclick="toggleQuiz10(this)"></button></div>
+    <div class="overlay-row"><label>Reset all progress</label><button class="hdr-btn" style="border-color:var(--red);color:var(--red)" onclick="resetProgress()">Reset</button></div>
+    <button class="overlay-close" onclick="hideSettings()">Close</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// QUESTION DATABASE — VQ-3 & VQ-4 AC BOARD
+// ═══════════════════════════════════════════
+const DB = [
+// ── 3710: INTRODUCTION & GENERAL ──
+{c:"3710 General",q:"What is the full title of the 3710?",a:"NATOPS General Flight and Operating Instructions Manual."},
+{c:"3710 General",q:"What is the current version of the 3710?",a:"1 September 2023, signed by RADM George M. Wikoff (Commander Naval Air Forces)."},
+{c:"3710 General",q:"What is the purpose of the 3710?",a:"To delineate a baseline of rules from the highest level and standardize the process for implementing change. Specialized instruction is then put forward with each NATOPS specific to each aircraft."},
+{c:"3710 General",q:"What comes before the 3710 for regulation purposes?",a:"FAA, FAR Part 91."},
+{c:"3710 General",q:"How do we know which publication to adhere to?",a:"Adhere to the most stringent publication except where specifically granted exemption."},
+{c:"3710 General",q:"What is a Warning? Caution? Note?",a:"Warning: May result in injury, death, or loss of aircraft. Caution: May result in damage to equipment. Note: Information that must be emphasized."},
+{c:"3710 General",q:"When is 'Shall' used? Should? May/Need not? Will?",a:"Shall = mandatory. Should = recommended. May/Need not = optional. Will = futurity only, never degree of requirement."},
+{c:"3710 General",q:"What are the current versions of all publications?",a:"3710: 1 SEP 23 (Wikoff). 000: 1 NOV 22 (Dougherty) IC 38. 600: 1 JUN 12 (Mahr) DOC 11 JUN 20. WSOP: 26 FEB 21 (Jessup). 3SOP: 20 SEP 23 (Lovick)."},
+{c:"3710 General",q:"What is the difference between a redline, IFC, and a NATOPS change?",a:"Redline: one-line interim change used while procedure is being updated. IFC: temporary clearance to fly under certain conditions. NATOPS change: full change through airworthiness that replaces the previous version. All are official procedures."},
+{c:"3710 General",q:"What is the Type, Model and Series of our aircraft?",a:"Type: E. Model: E-6. Series: E-6B."},
+{c:"3710 General",q:"Who is the Controlling Custodian?",a:"The Commodore, delegated as such by CNAF."},
+{c:"3710 General",q:"Who is the Reporting Custodian?",a:"The Skipper (CO), accountable to the CNO. The lowest echelon accepting responsibility for aircraft."},
+{c:"3710 General",q:"Who can flight violate you?",a:"CNO."},
+
+// ── 3710: GLOSSARY & DEFINITIONS ──
+{c:"3710 Glossary",q:"What is an actual instrument approach?",a:"When actual instrument conditions are encountered below 1,000 feet above the airport/flight deck elevation during an instrument approach."},
+{c:"3710 Glossary",q:"What are actual instrument conditions?",a:"Conditions external to the aircraft in flight that do not permit visual reference to the horizon."},
+{c:"3710 Glossary",q:"What is an aerobatic flight maneuver?",a:"Intentional abrupt changes in aircraft attitude, intentional spins, pitch/dive >45°, bank >60°, accelerations >2G. Mnemonic: Attitude Spin 45-60-2."},
+{c:"3710 Glossary",q:"What are our G limits?",a:"Clean: +2.50 to -1.00G. Dirty: +2.00 to -0.00G."},
+{c:"3710 Glossary",q:"What are our Prohibited Maneuvers?",a:"Aerobatics of any kind. Intentional spins, vertical stalls, steep dives, rudder kicks, flight beyond stick shaker or initial buffet. Wing SOP: No break/overhead pattern, no intentional maneuvers resulting in less than 1G."},
+{c:"3710 Glossary",q:"What is Aircraft Commander Time?",a:"Flight time served as pilot in command. A measure of command experience rather than pilot experience."},
+{c:"3710 Glossary",q:"What is CRM and what are the 7 skills?",a:"Crew Resource Management: use of behavioral skills to improve mission effectiveness. DAMCLAS: Decision Making, Assertiveness, Mission Analysis, Communication, Leadership, Adaptability/Flexibility, Situational Awareness."},
+{c:"3710 Glossary",q:"What is a flight (operational and recording)?",a:"Operational: one or more aircraft on a common mission. Recording: begins at first movement on takeoff run, ends when engines stopped or 5 min on surface (whichever first), or change of PIC."},
+{c:"3710 Glossary",q:"What is a cross country flight?",a:"A flight that does not remain in the local flying area or remains in it but terminates at a facility other than an active military facility."},
+{c:"3710 Glossary",q:"What is IMC?",a:"Instrument Meteorological Conditions: visibility, distance from clouds, and ceiling less than VMC minimums. Exists anytime a visible horizon is not distinguishable."},
+{c:"3710 Glossary",q:"What is VMC?",a:"Visual Meteorological Conditions: visibility, cloud distance, and ceiling equal to or better than specified minimums. Surface VFR minimums are 1000/3."},
+{c:"3710 Glossary",q:"What is the local flying area?",a:"Area within 350 miles of an air installation designated by the CO. Bounded by prominent terrain features and/or navaid radials/distances."},
+{c:"3710 Glossary",q:"What is a landing?",a:"A return to the surface, including touch and go (gear touches surface), bolter, forced, or crash."},
+{c:"3710 Glossary",q:"Explain: Land Immediately, As Soon as Possible, As Soon as Practicable.",a:"Immediately: without delay (e.g., uncontrolled fire). As soon as possible: first safe landing site (e.g., weather warning). As soon as practicable: extended flight not recommended, at PIC discretion (e.g., LOAG)."},
+{c:"3710 Glossary",q:"What is considered Oceanic?",a:"When an aircraft has no radio communication and is greater than 250nm from the nearest navaid."},
+{c:"3710 Glossary",q:"What is night time?",a:"Pilot time during darkness between official sunset and sunrise on the surface below the aircraft, regardless of visual or instrument conditions."},
+{c:"3710 Glossary",q:"What is operational necessity and who can declare it?",a:"A mission where consequences justify accepting risk of loss of aircraft and crew. The Commodore can declare it."},
+{c:"3710 Glossary",q:"What is minimum fuel?",a:"Advisory term indicating fuel state is such that no undue delay can be accepted en route. Not an emergency, but undue delay may result in one. Both min fuel and emergency fuel reported at each controller handoff."},
+
+// ── 3710: POLICY & PIC ──
+{c:"3710 Policy",q:"What is considered a non-essential flight?",a:"Routine business when commercial transport is more economical, flights solely for officer convenience/prestige, repeated flights to hometowns, flights coinciding with major sports events or civic celebrations."},
+{c:"3710 Policy",q:"What does it mean to be the Pilot in Command?",a:"Responsible for safe, orderly flight and well-being of crew. Authority/responsibility shall not be transferred during flight except for emergency, operational necessity, or as directed by CO. Independent of rank except for OTCE and Flag/General officer embarked."},
+{c:"3710 Policy",q:"What is an orientation flight?",a:"Typically one-time event to familiarize with aircraft, perform non-crew duties, or recognize performance. Approval authority is TYCOM (CNAP). Unit COs may authorize for non-ejection seat aircraft."},
+{c:"3710 Policy",q:"Who can taxi the jet?",a:"Min crew: AC or 2P in pilot seat, 3P or safety observer in copilot seat, and a designated Level 200 E/2E. 3P may occupy pilot seat if AC or 2P in copilot seat. High-speed taxi requires AC, 2P or 3P, and E."},
+{c:"3710 Policy",q:"What is TEM?",a:"Threat and Error Management (NATOPS CH 26): an active tool to recognize threats and errors to correct situations before developing an unsafe state."},
+
+// ── 3710: FLIGHT PLANNING ──
+{c:"Flight Planning",q:"What do you want for preflight planning? (WANTFATS)",a:"Weather, Alternates, NOTAMs, TFRs, Fuel Requirements, Anticipated Traffic delays, Terminal Procedures, Shall conduct risk assessment."},
+{c:"Flight Planning",q:"What is required on the flight schedule? (NOMMED)",a:"Names, pOsitions, Model (E6), Mission, ETD/ETA/ETE, Departure and Destination. Additionally we include Tail Number and Fuel Load though not technically required."},
+{c:"Flight Planning",q:"What weather must be checked before filing?",a:"1) Actual weather at departure at time of clearance. 2) Existing and forecast weather for entire route. 3) Destination and alternate forecasts for ETA ±1 hour."},
+{c:"Flight Planning",q:"Do we have to file IFR?",a:"Yes, regardless of weather, IFR flight plans shall be filed and flown whenever practicable to reduce midair collision potential."},
+{c:"Flight Planning",q:"When do we need an alternate?",a:"When destination weather is forecast below 3,000-foot ceiling and 3-statute-mile visibility during ETA ±1 hour."},
+{c:"Flight Planning",q:"Can I use GPS approach at both destination and alternate?",a:"No. For non-WAAS GPS (that's us), aircrew may plan GPS approaches at either destination or alternate, but not both."},
+{c:"Flight Planning",q:"When do you need a takeoff alternate?",a:"Whenever conditions preclude an immediate return to takeoff field. Appropriate alternate within 250nm radius with weather/wind conditions for safe landing."},
+{c:"Flight Planning",q:"What is our minimum fuel for planning?",a:"No alternate: fuel to destination + 10% reserve. With alternate: fuel to approach fix at destination, then to alternate + 10% reserve. Never less than 20 min endurance at 10,000 feet."},
+{c:"Flight Planning",q:"Does air refueling change fuel planning?",a:"Yes, must assume unsuccessful refueling. Fuel from takeoff to ARCP, then to a suitable recovery field. Min 10% reserve at each rendezvous point. After last refueling, normal 4.8.5.1 rules apply."},
+{c:"Flight Planning",q:"When do we need an ETP?",a:"On all overwater point-to-point flights longer than 1,000 miles."},
+{c:"Flight Planning",q:"How is an ETP calculated?",a:"Point where aircraft spends same time continuing to destination or returning. Figured at flight plan cruise altitude outbound and 18,000 feet on three engines inbound."},
+{c:"Flight Planning",q:"What do you need for RVSM?",a:"Transponder working, altimeters within 200ft crosschecked hourly, altitude alert system working, autopilot working and engaged."},
+{c:"Flight Planning",q:"What is a LAHSO operation?",a:"Land and Hold Short Of. Hesitate to accept as it reduces available runway for their convenience."},
+{c:"Flight Planning",q:"When do you need a PPR?",a:"When specified in the IFR Supp. Not required for planned alternates or emergency diverts."},
+{c:"Flight Planning",q:"When can we RON at a civilian airfield?",a:"Only when required for mission accomplishment (requires Wing/Group Commander approval), for aircraft maintenance, or following emergency divert."},
+{c:"Flight Planning",q:"How much fuel do we burn in the pattern?",a:"~15K/hr VFR pattern, ~12K/hr instrument pattern. ~1.5K per VFR pass (~10 passes/hr), ~3K per instrument pass (~15 min each). Community gouge, not backed by publication."},
+{c:"Flight Planning",q:"What is the manifest requirement?",a:"PIC shall ensure a manifest is on file with a responsible agency at departure prior to takeoff, including names, serial numbers, grade/service, duty station, and status (passenger/crew)."},
+
+// ── WEATHER ──
+{c:"Weather",q:"What is the difference between a Weather Watch and Warning?",a:"WW bulletins: issued for areas where conditions are favorable for severe weather development. Warnings: issued by local NWS offices where conditions are actually occurring."},
+{c:"Weather",q:"Can we fly through a Weather Watch?",a:"Not without exceptions. Pilots shall not file into/through SPC WW areas except: storm development hasn't progressed, installation CO/Wing Commander authorize, or other specific exceptions."},
+{c:"Weather",q:"Tinker weather shop calls a WW — whose approval needed?",a:"Nobody's. The local Tinker weather shop WW is not the same as a WW from the Storm Prediction Center."},
+{c:"Weather",q:"Travis has an SPC WW and you want to take off — approval?",a:"Pilot responsibility to get verification from a DoD forecaster or FSS that storm development has not progressed as forecast."},
+{c:"Weather",q:"Must fly through a WW to get into Tinker — approval?",a:"Commodore, delegated to N3."},
+{c:"Weather",q:"WW at KNHK — whose approval?",a:"Base CO or Commodore. Local installation COs and/or Wing Commanders may continue operations based on determination storm development hasn't progressed."},
+{c:"Weather",q:"Does Commodore need DoD forecaster verification for WW approval?",a:"No. 'Normally, such determination should include verification' — should, not shall."},
+{c:"Weather",q:"What about landing 15 min after a WW?",a:"Good to go — restriction is on filing into/through a WW, not arriving after one."},
+{c:"Weather",q:"WW pops up while airborne — need permission?",a:"No. The restriction is about filing into/through. Once airborne, no filing limitations apply."},
+{c:"Weather",q:"How would you deal with thunderstorms?",a:"Circumnavigation preferred. Go over if necessary (rule of thumb: 1,000ft above per 10kt wind). If must penetrate, go through lower third. Above FL300, do not climb over unless obviously clear."},
+{c:"Weather",q:"What weather makes an airport VFR?",a:"Ceiling and visibility within Class B, C, D, or E surface areas must be at least 1000 feet and 3 statute miles."},
+{c:"Weather",q:"What weather is required for Due Regard?",a:"VMC is required. When you chop out of Due Regard you're in Class E airspace."},
+
+// ── FLIGHT RULES ──
+{c:"Flight Rules",q:"Tell me about required lighting.",a:"Position lights: 30 min before sunset to 30 min after sunrise, vis <3SM, before engine start and anytime engines running, when towed or parked as hazard. Anti-collision: before engine start, all times engines operating. Landing/taxi lights: recommended during darkness, approaches in B/C/D. NATOPS: exterior lights on until 10,000ft, back on by 10,000ft on descent."},
+{c:"Flight Rules",q:"What is the minimum altitude in VFR?",a:"500ft above terrain/water except for takeoff/landing. 3 SOP: nothing below 1,500 unless on approach."},
+{c:"Flight Rules",q:"What are VFR flight minimums for Class C?",a:"3 statute miles visibility, 500ft below clouds, 1,000ft above, 2,000ft horizontal."},
+{c:"Flight Rules",q:"What is the minimum altitude in IFR?",a:"Uncontrolled: 1,000ft above highest terrain/obstacle within 22nm. Mountainous terrain: 2,000ft above. Controlled: not less than MEA or altitude specified by controlling agency."},
+{c:"Flight Rules",q:"What are takeoff minimums? (Standard instrument rating)",a:"Published non-precision mins, but not less than 300/1. With precision approach: not less than precision mins, never less than 200/½ (2400 RVR). Special instrument rating: no mins, depends on judgment and urgency, CO approval, TO alt, AC in left seat."},
+{c:"Flight Rules",q:"Can you conduct an approach below mins?",a:"Yes, but must have capability to proceed to alternate if missed approach required."},
+{c:"Flight Rules",q:"What do you need to land?",a:"Runway environment in sight, safe position to land with normal maneuvers. Approach lights can get you to 100ft above TDZE if red terminating/side row bars visible."},
+{c:"Flight Rules",q:"What defines the runway environment?",a:"Approach lights, threshold/markings/lights, REIL, VGSI, touchdown zone/markings/lights, runway/markings/lights (FAR 91.175)."},
+{c:"Flight Rules",q:"Can I fly over noise sensitive areas?",a:"3,000ft AGL unless on published approach."},
+{c:"Flight Rules",q:"If jettisoning fuel, what to consider?",a:"Whenever practicable, not below 6,000ft AGL. If lower altitude required, avoid populated areas. Advise ATC. Dump valves won't empty tanks — 17-18K lbs remain."},
+
+// ── AEROMEDICAL ──
+{c:"Aeromedical",q:"When do I have to wear an anti-exposure suit?",a:"CO/OIC determines. Required when risk of water entry and: water temp ≤50°F or OAT ≤32°F (wind chill). Between 50-60°F, CO/OIC determines necessity."},
+{c:"Aeromedical",q:"What cabin altitude affects the body?",a:"Noticeable physiological deficits above 10,000ft without supplemental oxygen or pressurization."},
+{c:"Aeromedical",q:"Why is 18,000ft important?",a:"Twice the air volume needed for equivalent sea-level oxygen. DCS and AGE highly unlikely below 18,000ft unless sudden pressure loss."},
+{c:"Aeromedical",q:"When does TUC degrade from minutes to seconds?",a:"FL350. Above 35,000ft cabin altitude, TUC reduces to seconds. Rapid decompression may reduce TUC by over 50%."},
+{c:"Aeromedical",q:"What do we do for sudden loss of pressurization?",a:"Oxygen ON ALL. O2 suspect: immediate descent to cabin alt ≤10,000ft. O2 not suspect: descent to ≤18,000ft. All occupants use oxygen."},
+{c:"Aeromedical",q:"What is a suspect oxygen system?",a:"LOX leak, ice ball on LOX, regulators outside limits (290-430 psi)."},
+{c:"Aeromedical",q:"What are LOX minimums? (Wing SOP)",a:"55L to begin deployment, 25L for mission flights, 15L for pilot training flights."},
+{c:"Aeromedical",q:"What is the 7/11 LOX rule of thumb?",a:"7L for one hour of LOX for TACAMO crew, 11L for LG crew. Natural LOX loss ~3L/day."},
+{c:"Aeromedical",q:"What is hypoxia?",a:"A general term describing a state of oxygen deficiency in the tissues."},
+{c:"Aeromedical",q:"What is hypocapnia vs hypercapnia?",a:"Hypocapnia: low CO2 from hyperventilation. Hypercapnia: high CO2 from hypoventilation."},
+{c:"Aeromedical",q:"How long after scuba diving until flight?",a:"24 hours. Urgent operational requirement: 12 hours if no symptoms and cleared by FS/APA."},
+{c:"Aeromedical",q:"What are crew rest requirements?",a:"3710: non-duty time before duty day, shall include opportunity for 8hrs uninterrupted sleep per 24hrs. Starts after termination of official duties. Continuous duty shall not exceed 18hrs; if exceeded, 15hrs off required. Wing: before flight/driving duty, must include 8hrs sleep."},
+{c:"Aeromedical",q:"What is the crew day policy?",a:"Personnel should not be scheduled >18hrs. Beyond 18hrs requires Commodore approval for flight, CO for ground ops. If exceeded, 15hrs continuous off-duty required. Squadron SOP: crew day starts with first crew member, ends with last."},
+{c:"Aeromedical",q:"What about circadian rhythm and time zones?",a:"Crossing >3 time zones disrupts rhythms ('jet lag'). Accommodation: 1 day per time zone crossed in excess of 3. Compounded by illness, fatigue, dehydration, alcohol, poor nutrition."},
+{c:"Aeromedical",q:"Flying hour limits?",a:"12hrs/day, 50hrs/7days, 120hrs/30days, 320hrs/90days, 1120hrs/365days."},
+{c:"Aeromedical",q:"Do I have to eat before a flight?",a:"Failure to eat within 4 hours preceding end of flight may impair performance and ability to control aircraft."},
+{c:"Aeromedical",q:"What are the alcohol rules?",a:"No alcohol within 12 hours of mission brief or flight planning. Alcohol can affect vestibular system up to 48 hours even at zero BAC. Must be free of hangover effects."},
+{c:"Aeromedical",q:"How long after anesthesia until flight?",a:"General/spinal/epidural: 48 hours minimum. Local injectable (dental): 12 hours. IV sedatives: 24 hours."},
+{c:"Aeromedical",q:"Blood donation rules?",a:"Rule of 4's: 4 month minimum interval, no donation within 4 weeks of flying, no flight duties for 4 days after donating, if flying within 4 days need command approval before donating."},
+{c:"Aeromedical",q:"Can I fly after a flu shot?",a:"No flight duties for 12 hours after immunization unless cleared sooner by FS/APA."},
+
+// ── CURRENCY ──
+{c:"Currency",q:"What are all pilot currency requirements?",a:"NASTP 4yrs, FLDC 3yrs, CPR 2yrs, Flight Physical/NATOPS check/A-R check/Instrument check/IGS/CRM ground & flight/Egress/Written/Birth Month Review/KMI/CBR annually, Flight Gear 360 days, NUC-TPC/9mm semi-annually, Sim/Quarterly test/Deadly force quarterly, Rolling pilot & A/R currency."},
+{c:"Currency",q:"What is rolling pilot currency?",a:"30 days: 2 approaches (2 in sim), 5 landings (2 in sim), 1 takeoff (1 in sim). 90 days: 6 approaches, 3 night landings."},
+{c:"Currency",q:"What is rolling A/R currency?",a:"45 days: 1 ARC (day or night). 90 days: 2 ARCs (1 shall be night). Reduced currency after one tour: 135 days instead of 90."},
+{c:"Currency",q:"Wing SOP rolling currency?",a:"30 days: AC needs 2 approaches, 5 landings. 2P/3P need 2 approaches, 6 landings. AC/2P can count 2 landings in sim. All approaches can be from sim."},
+{c:"Currency",q:"What are fiscal year minimum flying hours?",a:"Pilot time: 40 semi-annual, 100 annual. Night time: 6 semi-annual, 12 annual. Instrument time: 6 semi-annual, 12 annual. 50% must be actual flying, of that 50% first pilot."},
+{c:"Currency",q:"What are standard instrument rating requirements?",a:"50hrs instrument time total. Within 6 months: 6hrs, 6 precision + 6 non-precision. Within 12 months: 12hrs, 12 precision + 6 non-precision. Sim can meet half the requirements."},
+{c:"Currency",q:"AC requirements?",a:"1) Advanced 2P knowledge/skill. 2) 700hrs total (600hrs + 150 sim for TACAMO). 3) 100hrs in class, NATOPS qualified. 4) Current instrument rating. 5) Positive command/training ability. 6) Leadership and judgment for detached ops as OIC."},
+{c:"Currency",q:"CRM requirements?",a:"Annual CRM Ground Class and flight evaluation tied with Annual Bounce Check."},
+{c:"Currency",q:"What are NATOPS 90-day currency requirements?",a:"25hrs individual flying, 6.3hrs first pilot, 3 instrument hours, 6 approaches, 3 night hours, 9 landings (3 night). Half of individual flying and instrument time may be in sim."},
+
+// ── PERFORMANCE: DEFINITIONS ──
+{c:"Performance Defs",q:"What is Takeoff Rated Thrust (TRT)?",a:"Maximum thrust for which the engine is rated. May not be used for more than 5 minutes. ~24,000 lbs static at sea level up to flat rated temperature."},
+{c:"Performance Defs",q:"What is Optimum Outboard Thrust (OOT)?",a:"Thrust resulting in minimum runway required for takeoff based on engine failure at most critical point. Less than TRT if VMCG > VCEF at TRT. TRT if VMCG ≤ VCEF. Never less than 63.5% TRT. Balances acceleration vs directional control."},
+{c:"Performance Defs",q:"What is Critical Engine Failure Speed (VCEF)?",a:"Speed at which an engine can fail and the same distance is required to either continue the takeoff or stop."},
+{c:"Performance Defs",q:"What is Ground Minimum Control Speed (VMCG)?",a:"Min speed during takeoff ground run at which upwind outboard engine can fail and aircraft kept straight with rudder, ≤75% roll, and nosewheel steering (dry only). Path may deviate 30ft."},
+{c:"Performance Defs",q:"What is Decision Speed (V1)?",a:"Lowest speed at which engine can fail and takeoff continue safely. Higher of VCEF and VMCG, but not greater than VR. Must not exceed VREFUSAL. Before V1: abort. Between V1 and VREFUSAL: can continue or stop."},
+{c:"Performance Defs",q:"What is Critical Field Length (CFL)?",a:"Total runway required to accelerate on 4 engines to V1, experience engine failure, then continue or stop. Balanced when V1=VCEF (equal distance). Unbalanced when VMCG>VCEF (stop distance > takeoff distance)."},
+{c:"Performance Defs",q:"What is Refusal Speed?",a:"Max speed under normal 4-engine acceleration then stop on available runway. Must be ≥ V1. Cannot exceed max braking speed, VR, or tire placard speed. Takeoff not permitted if VREFUSAL < V1."},
+{c:"Performance Defs",q:"What is Maximum Braking Speed (VB)?",a:"Highest speed from which aircraft can stop without exceeding max brake energy absorption. Must be ≥ VREFUSAL for takeoff planning."},
+{c:"Performance Defs",q:"What is Climbout Factor?",a:"Reference number expressing thrust-to-weight ratio. Directly proportional to climb capability. Used to compute climbout pitch attitude and obstacle clearance."},
+{c:"Performance Defs",q:"What is Rotation Speed (VR)?",a:"Speed at which rotation from three-point attitude to takeoff attitude is initiated. Always ≥ VMCA."},
+{c:"Performance Defs",q:"What is Takeoff Speed (VTO)?",a:"Speed at which main gear leaves the ground."},
+{c:"Performance Defs",q:"What is Climbout Speed (V2)?",a:"Minimum speed during climbout. 3-engine: attained at end of takeoff flare, target for obstacle clearance. 4-engine: accelerate to V2+10 for climbout."},
+{c:"Performance Defs",q:"What is Balanced Field Length?",a:"Total runway required to accelerate on 4 engines to VCEF, experience engine failure, then continue or stop. Balanced because same distance for either option."},
+{c:"Performance Defs",q:"What is Reference Speed (VREF)?",a:"Exceeds 120% of stall speed at flaps 50, gear down. Basis for approach and threshold speeds. ~137 ±3 knots per 10K lbs."},
+{c:"Performance Defs",q:"What is Approach Speed?",a:"Target speed on final = VREF + adjustments for flap settings, wind, abnormal configs."},
+{c:"Performance Defs",q:"What is Threshold Speed?",a:"Speed at 50ft height = VREF + adjustments for flap settings, wind gusts, abnormal configs."},
+{c:"Performance Defs",q:"What is ground effect?",a:"When ground alters airflow, reduces induced drag, increases lift. Starts when wing height above ground equals wingspan (~150ft)."},
+
+// ── PERFORMANCE: TAKEOFF ──
+{c:"Takeoff",q:"What are takeoff assumptions?",a:"FICO: Flaps 14, Inboards at TRT, Correct stab setting, Optimum outboard thrust."},
+{c:"Takeoff",q:"What are abort assumptions?",a:"FBATS: Flaps 14, max Braking all 8 wheels, Antiskid on, 3-second Transition, Spoilers extended."},
+{c:"Takeoff",q:"What conditions affect takeoff performance?",a:"Pressure altitude, wind, aircraft gross weight, temperature, engine thrust, runway slope, RCR, RSC, reverse thrust."},
+{c:"Takeoff",q:"Why is upwind outboard engine the critical engine?",a:"Some rudder already used to prevent turning into wind, leaving less rudder available for engine failure correction. Also, we have EFAS on outboard engines."},
+{c:"Takeoff",q:"When must you recompute takeoff data? (Rule of 5's)",a:"Runway temp change >5°C, pressure altitude >500ft, gross weight >5,000lbs, CG >0.5%."},
+{c:"Takeoff",q:"How does CFL change? (Rule of 1's)",a:"CFL changes ~100ft with: 1°C temp, 100ft pressure altitude, 1,000lbs gross weight."},
+{c:"Takeoff",q:"How much snow/water for takeoff?",a:"Shall not attempt with >½ inch wet snow/slush/water or >1½ inches dry snow."},
+{c:"Takeoff",q:"When do crosswinds increase CFL?",a:"When VMCG is already ≥ VCEF, crosswinds increase VMCG further. No effect when VCEF > VMCG until crosswind pushes VMCG to equal VCEF."},
+{c:"Takeoff",q:"When do gusts increase CFL?",a:"When V1=VCEF. Gust increment (max 10kt) added to VR and VTO."},
+{c:"Takeoff",q:"Combined gust and crosswind?",a:"Add only the greater correction. If gust greater, V1=VCEF; if crosswind greater, V1=VMCG."},
+{c:"Takeoff",q:"How long does rotation take?",a:"4-5 seconds to ~9°, 7-10 seconds to climbout attitude. ~1,000ft of runway."},
+{c:"Takeoff",q:"How long to react to engine failure on takeoff?",a:"Charts allow 1.0 second. Each additional 0.1 second increases deviation ~12ft dry, ~20ft icy, beyond the max allowable 30ft from centerline."},
+{c:"Takeoff",q:"What is Mission Accomplishment for takeoff? (3-2-1-0)",a:"300ft lineup (static), 2-engine reverse thrust (all 4 TRs must be operational), 1/2 headwinds, 0 crosswind CFL for obstacle clearance. Commodore approval required."},
+{c:"Takeoff",q:"What is EWO takeoff basis?",a:"Min takeoff ground run/flare/climbout without interim engine failure. All engines at 100% TRT without regard for VMCG/VMCA. 3-engine: 2 symmetric at TRT, asymmetric increased as directional control permits."},
+{c:"Takeoff",q:"What are reduced thrust limitations? (WWAARRR)",a:"Weight reduced for CFL/climb/obstacle, Wind shear suspected, Antiskid/brakes/spoilers not fully operational, Anti-icing/deicing fluids applied, RSC reported, RCR <12, Reduced thrust N1 > TRT N1 with anti-ice ON."},
+{c:"Takeoff",q:"When can I clean up after takeoff?",a:"Above 500ft can move flaps. Above 400ft can start turn (left closed). Min flap retraction speed: V2+30."},
+{c:"Takeoff",q:"Can I take off with partial spoilers?",a:"Yes, use lower RCR. Only one set inoperative and BOTH hydraulic systems operable."},
+{c:"Takeoff",q:"Takeoff with 6 or 7 brakes?",a:"Use lower RCR and increase uncorrected CFL, reduce max braking speed."},
+{c:"Takeoff",q:"Three-engine ferry takeoff restrictions?",a:"Do not attempt with upwind engine failed if crosswind >5kt. Attempt only from dry runway. Skipper approval. Charts go to 250,000lbs."},
+{c:"Takeoff",q:"Cocking data gouge numbers?",a:"At 250K: VREF≈137 (±3kt/10K). Inboard N1≈91% at 10°C sea level (±0.5%/3°C or 1,000ft PA). V1/VR/V2 gouge: VREF-20/-10/+10."},
+{c:"Takeoff",q:"CFL gouge numbers?",a:"Dry 105K fuel: ~5,300ft (±500ft for 95K/125K/152K). Wet: add ~1,000ft to dry CFL."},
+
+// ── PERFORMANCE: EN ROUTE ──
+{c:"En Route",q:"What are 4-engine and 3-engine speed schedules?",a:"4-engine: 250kt to 10,000ft, 310kt to .77M. 3-engine: V2+55 (best angle), 280kt to .70M (best rate). 2-engine: 210kt to .46M. Gear down: 210kt to .55M."},
+{c:"En Route",q:"What is min maneuvering speed?",a:"V2+55, also best angle of climb flaps up."},
+{c:"En Route",q:"Best angle of climb at flaps 14? Flaps up?",a:"Flaps 14: V2+10. Flaps up: V2+55. Engine failure flaps 14: V2. Engine failure flaps up: V2+55. Two engines: V2+55 (best angle), 210/.46M (best rate)."},
+{c:"En Route",q:"When do we switch from KIAS to Mach on climb?",a:"Approximately 27,000 feet."},
+{c:"En Route",q:"What do we climb at in icing?",a:"V2+25. Don't raise flaps in icing — don't want to force ice into flaps."},
+{c:"En Route",q:"When can I roll to 30° on takeoff?",a:"V2+10, 4 or 3 engine."},
+{c:"En Route",q:"What are our ceilings?",a:"Service ceiling: max alt with 100fpm climb. Cruise ceiling: 300fpm (step climb cruise). Combat ceiling: 500fpm (what ATC expects)."},
+{c:"En Route",q:"What is the difference between maximum, optimum, and best range?",a:"Maximum: optimum climb cruise altitude + max range Mach. Optimum: step climb profile + max range Mach. Best: constant altitude + max range Mach."},
+{c:"En Route",q:"What is Long Range Cruise?",a:"~99% of max range at ~5% higher airspeeds."},
+{c:"En Route",q:"What is Specific Range?",a:"Fuel mileage: nautical air miles per pound of fuel consumed (NAM/LB)."},
+{c:"En Route",q:"What altitude gives maximum true airspeed?",a:"Standard day, near 22,400 feet at placard speeds."},
+{c:"En Route",q:"How does nacelle anti-ice affect range?",a:"Reduces available range by 2%."},
+{c:"En Route",q:"What if gear is down for range?",a:"Cruise at max range Mach minus 0.1M, reduce range by 33%."},
+{c:"En Route",q:"What is the difference between max and best endurance?",a:"Maximum: greatest time from given fuel by flying at optimum altitude (climbing). Best: greatest time at constant altitude. SOP says fly best endurance."},
+{c:"En Route",q:"How does altitude affect endurance?",a:"Small fuel flow changes several thousand feet above/below optimum. Can approximate max endurance between 19,000 and 35,000ft at constant altitude."},
+{c:"En Route",q:"How does anti-ice affect endurance?",a:"Fuel flow increases by 2%."},
+{c:"En Route",q:"Gear down effect on endurance?",a:"Increase holding fuel flows by 50%."},
+{c:"En Route",q:"Slipway doors open effect?",a:"Range: decrease 1.5%. Endurance: increase fuel flow 1.5%."},
+{c:"En Route",q:"Normal vs Rapid descent?",a:"Normal: .77M to 280 KIAS (~32,500ft), 250 below 10,000ft. Rapid: .83M with speed brakes and gear down to 320 KIAS (~29,500ft). Block II rapid: .80M to 300 KIAS."},
+
+// ── ORBIT ──
+{c:"Orbit",q:"What are orbit parameters?",a:"Bank angle and airspeed required for orbit, varying with flap setting, altitude, LTWA length, gross weight. Designed for adequate margin above stall. Update every 4,000lbs of fuel burn."},
+{c:"Orbit",q:"What is our verticality in orbit vs trail?",a:"Orbit: 70%. Trail: 30%."},
+{c:"Orbit",q:"What flap setting in orbit?",a:"Below 20,000ft: flaps 25 has greater weight capability. Above 20,000ft: flaps 20. Flaps 20 recommended if max GW not a concern (less buffet). Engine out: flaps 14 (flaps 6 for higher altitude)."},
+{c:"Orbit",q:"What is entry bank angle?",a:"Used for slower entry reducing wire tension. Held for 180° of orbit before rolling to nominal bank angle."},
+{c:"Orbit",q:"How does temperature affect verticality?",a:"Inversely proportional: ~0.4% per °C below ISA increases verticality, ~0.4% per °C above ISA decreases it."},
+{c:"Orbit",q:"Are we thrust limited or AoB limited by AOR?",a:"AoB limited in PAC and CENT. Thrust limited in LANT."},
+{c:"Orbit",q:"What are min drogue altitudes?",a:"1,000ft for PAC and LANT. 5,500ft for W-602. 2,000ft for R-4305."},
+{c:"Orbit",q:"What do I need for R-4305?",a:"Skipper's permission, deliberate ORM, local altimeter from Duluth ATIS."},
+{c:"Orbit",q:"Does temperature affect thrust limited gross weight?",a:"Yes: -900lbs/°C above ISA+10 (4-engine), -1,500lbs/°C (3-engine flaps 14), -700lbs/°C (3-engine flaps 6)."},
+
+// ── LANDING ──
+{c:"Landing",q:"What are landing assumptions? (GIFT)",a:"Glideslope 2.5°, Idle thrust at touchdown, 150% calculated Flare distance, 1.8s Transition to speedbrakes/max braking."},
+{c:"Landing",q:"What is landing distance vs ground roll vs flare distance?",a:"Landing distance: 50ft point to stop. Ground roll: touchdown to stop. Flare distance: 50ft point to touchdown."},
+{c:"Landing",q:"How much more effective is braking on the ground vs air?",a:"~3 times. 10kt bled in air: 1,200-1,500ft. On ground: 500ft. 50ft high threshold crossing: +950ft. Each second delay in braking: +250ft."},
+{c:"Landing",q:"How does speedbrake help braking?",a:"Without speedbrakes: 1/3 to 1/4 braking effectiveness. With speedbrakes: maximum effectiveness."},
+{c:"Landing",q:"Max tailwind for normal landing?",a:"10 knots."},
+{c:"Landing",q:"Max crosswinds for landing?",a:"RCR 23: 30-35kt (depends on GW). RCR 17: 19kt. RCR 12: 12.5kt. RCR 8: 8kt. RCR 5: 5kt."},
+{c:"Landing",q:"Max crosswinds for touch and goes?",a:"15kt for RCR ≥17. 10kt for RCR 12. AC limited to 10kt, IP up to 15kt."},
+{c:"Landing",q:"What landings can an AC perform?",a:"Flaps 40 and 50. IP can do no-flap, 14, and lateral offset (Latty)."},
+{c:"Landing",q:"What is go-around thrust limited by?",a:"TRT or thrust resulting in VMCA reduced to VREF (flaps 50) or VREF+30 (flaps 14)."},
+{c:"Landing",q:"Pneumatic brake effectiveness?",a:"Twice the normal brake distance required. No antiskid protection."},
+{c:"Landing",q:"Normal vs emergency brake energy chart?",a:"Normal: 24 million ft-lbs (max without melting fuse plugs). Emergency: 42 million ft-lbs (replacement of tires/wheels/brakes required)."},
+{c:"Landing",q:"Brake energy regions?",a:"Red >28M: clear runway, no parking brake, dry chemical, wait 2-3hrs. Red/Yellow 24-28M: park no brake, no approach 30min, delay 1.5hrs. Yellow 10-24M: delay 7min per 1M above 10M. Green <10M: normal. Do not open wheelwell doors above 24M."},
+{c:"Landing",q:"Tire placard speed?",a:"195 knots."},
+{c:"Landing",q:"AC touch and go distance?",a:"8,000ft or T&G distance, whichever is greater (Wing SOP)."},
+{c:"Landing",q:"Minimum runway per Squadron SOP?",a:"Approach: 5,000ft x 100ft. Land: 6,000ft x 140ft."},
+{c:"Landing",q:"LOAG effect on landing distance?",a:"Multiplied by 2.2 (1.9 if chop outboards)."},
+{c:"Landing",q:"How long before engines revert to ground idle?",a:"4 seconds."},
+{c:"Landing",q:"What is max approach speed correction?",a:"Abnormal config: up to +40kt. Wind effects: up to +20kt. Maximum total: +60kt."},
+{c:"Landing",q:"What is our N1 setting for rudder boost out?",a:"Roughly 85/75."},
+{c:"Landing",q:"What about 2 engine same side go-around N1?",a:"Roughly 92/78."},
+
+// ── EMERGENCY PROCEDURES ──
+{c:"Emergency Procs",q:"What are reasons to abort a takeoff?",a:"Rudder boost failure, fire, failure of either nosewheel tire, windshear, takeoff warning horn, engine malfunction making aircraft unsafe, any malfunction that could compromise ability to fly or stop."},
+{c:"Emergency Procs",q:"Aborted takeoff procedure?",a:"Brakes as required (P), Throttles idle (P) — simultaneously. Speed brake full up (P), Reverse max as required (P) — as quickly as possible. Be prepared for directional control with asymmetric thrust."},
+{c:"Emergency Procs",q:"Engine failure after V1?",a:"Continue takeoff. Disengage EFAS after recovery to prevent rudder displacements through 160/200kt with flaps down. Immediately apply full rudder. V2 is target speed."},
+{c:"Emergency Procs",q:"What is FFOOOORGETBS? (Precautionary Shutdown)",a:"Fuel Filter Bypass, Fuel Crossfeed valve failed, Oil Filter Bypass, Oil Pressure >90 PSI, Oil Temp 140-155 (15min) or >155, Oil Consumption >½ gal/3-4hrs, Multiple failed Relight attempts, EGT >950°C, inadverTent reverse thrust, Bleed air overheat, uncommanded Start valve."},
+{c:"Emergency Procs",q:"What is FFIVEMOOU12? (Emergency Engine Shutdown)",a:"Engine Failure, Engine Fire, Internal damage, Vibrations severe, Engine separation, MEC failure, total loss of Oil pressure, sudden loss of Oil quantity with pressure loss, Uncontrollable compressor stalls, N1>105%, N2>106%."},
+{c:"Emergency Procs",q:"Ground evacuation procedures?",a:"SET PARKING BRAKE. Speed brake full forward in detent. Flaps 50, throttles idle, notify crew and tower before CUTOFF. Warning lights CRASH. Primary exits: forward/aft main doors. Secondary: emergency hatches, pilot windows, overwing hatches, bailout door."},
+{c:"Emergency Procs",q:"Fire, smoke, or fumes procedure?",a:"All crew wear flight gloves. Fire Bill activated (P). Oxygen as required (ALL). Consider flight deck lights to override. Raise cabin pressurization, open outflow valves (UNPRESS overrides 14,000ft limiter). Do NOT use extinguisher unless flames visible."},
+{c:"Emergency Procs",q:"Wheelwell fire procedure?",a:"Hot brakes alone shouldn't trigger fire detection. Gear Down, doors open (lever up momentarily, then OFF when gear door warning light illuminates). Check hydraulic quantity. Wait 20min after fire light extinguishes for brake cooling. Close doors before landing."},
+{c:"Emergency Procs",q:"Emergency return after takeoff?",a:"Normal descent and before landing checklist. Prepare for possible flat tires from fuse plug melting."},
+
+// ── SYSTEMS MALFUNCTIONS ──
+{c:"Systems",q:"Loss of All Generators — what happens?",a:"Procedure attempts to restore power. Provides ~2hrs battery life. Degrades: no TRs, no inboard spoilers, no rudder boost, antiskid INOP, flight idle, ice/rain protection engines 2&3 only. STILL HAVE: N1/EGT/N2, fire extinguishers, DC lights."},
+{c:"Systems",q:"LOAG considerations?",a:"Stabilizer trimmed manually, RADALT inoperative, gear visually checked (normal extension hydraulically but no indication). All boost pumps inoperative — engines may flame out. Consider descending if above relight envelope."},
+{c:"Systems",q:"Auxiliary hydraulic system high pressure?",a:"If >3,500 psi, shut down No.2 aux pump. If normal, leave off unless SOF. If remains high, verify No.1 PRESS caution off. Landing distance increases with inboard spoilers inoperative."},
+{c:"Systems",q:"Utility hydraulic system loss?",a:"If >3,500 psi shut down affected pump. Both inoperative: refer to CH.15. Landing distance increases with outboard spoilers, TRs, and NWS inoperative."},
+{c:"Systems",q:"Jammed stabilizer landing procedure?",a:"'Boards' — stow spoilers. 'Breakers' — close spoiler CB. 'Boards' — deploy spoilers. Inboard spoilers OFF = nose up trim. Outboard spoilers OFF = nose down trim. Approach at VREF+15."},
+{c:"Systems",q:"Unusual yaw in flight?",a:"Isolate to FCAS, PYD, or RUDDER. WARNING: Do not switch rudder boost OFF until problem is positively isolated — aircraft might become uncontrollable."},
+{c:"Systems",q:"Rudder Pressure Reducer malfunction?",a:"Failure to decrease (stays high above 265 KIAS): RUDDER OFF, resume below 250. Failure to increase (below 235/175): RUDDER to OVERRIDE, if no increase to 3,000 psi use RBO data."},
+{c:"Systems",q:"N1 and N2 limits?",a:"N1: 102.1-105% reduce to below 102, mx required. >105% emergency shutdown. N2: 105.1-106% operate normally, mx required. >106% emergency shutdown."},
+{c:"Systems",q:"Oil pressure and quantity rules?",a:"Oil <11 psi: engine change required if >30sec at ground/flight idle or >5sec above. Emergency shutdown if drops below 11 psi or sudden quantity loss with pressure loss."},
+
+// ── EMERGENCY EQUIPMENT ──
+{c:"Emergency Equip",q:"LOX system specs?",a:"75L converter, pressures 290-430 psi (redline 450). LOW light at 7.5L (10%) or 42 psi. 26 diluter demand regulators. 100% oxygen at 30,000ft in NORMAL, pressurized above 34,000ft."},
+{c:"Emergency Equip",q:"Portable oxygen units?",a:"6 MB-1, 12 MA-1. Modes: NORM, 30M, 42M, EMER. ~10 min moderate activity at 25,000ft charged to 300 psi. Depleted to ≤50 psi: purge by recharging then discharging 3 cycles."},
+{c:"Emergency Equip",q:"PRC-149 Survival Radio?",a:"5 units. Frequencies: 121.5/243/282.8/406.025. 48hrs beacon, 24hrs triple frequency, 8hrs 90/10 voice cycle. One per life raft, 2 on top of crew rest raft. WARNING: lithium batteries may explode if left on."},
+{c:"Emergency Equip",q:"Life rafts?",a:"3 rafts, 9 man (14 person overflow). 25ft cotton retaining line (500lb breaking strength). Aspirated inflation at 3,160 ±50 psi, <60 seconds. 75ft heaving ring, 20ft sea anchor, survival kit."},
+{c:"Emergency Equip",q:"Fire extinguishers?",a:"8 total. CO2 with 2.5 lbs agent for petroleum/electrical fires. Shall use oxygen when discharging."},
+{c:"Emergency Equip",q:"LPU?",a:"24 units. Has whistle, sea dye marker, chemlite."},
+{c:"Emergency Equip",q:"First Aid Kits?",a:"7 total. Required 1 per 4 people per MESM. Has 2 compartments, smaller one is empty."},
+
+// ── HOT/COLD WEATHER ──
+{c:"Weather Ops",q:"Rain and slush brake procedures?",a:"Carbon brakes: dry before takeoff with 70% N1 to stops from 20kt, ≤5 stops or less if reaching 4-5 million ft-lbs. Wet brakes may freeze in flight. Hydroplaning possible in <1/10 inch. Braking: ~1/3 dry effectiveness wet, ~1/5 in slush."},
+{c:"Weather Ops",q:"Cold weather operations?",a:"All ice/snow on wing and stabilizer surfaces removed. Light frost up to 1/88\" on lower wing from cold fuel is permissible. Thin hoarfrost acceptable on upper fuselage if ports/vents clear."},
+{c:"Weather Ops",q:"Anti-ice ground testing?",a:"Up to 1 min at <70% N1 at temps >10°C. HI STG OPEN when N1 >70%. Close bleed air valve, don't exceed 54% N1 with nacelle anti-ice valve OPEN."},
+{c:"Weather Ops",q:"Icing in flight?",a:"Stall speeds increase ~5kt per inch of ice on leading edge. Bolts for moderate, front windshield for severe. Don't retract flaps <25° in icing. Min 60% N1 for worse than light icing."},
+{c:"Weather Ops",q:"Battery cold weather limits?",a:"Aircraft, emergency lighting, IRS batteries, and APU battery must be removed if temps below -20°F for 4+ hours. IRS batteries removed if cold soaked to -4°F."},
+{c:"Weather Ops",q:"Hot weather considerations?",a:"Duct pressure reduced 0.5 psi per 1,000ft density altitude. Increased probability of tailpipe fire — consider keeping APU running for bleed air."},
+{c:"Weather Ops",q:"Deicing/anti-icing fluid takeoff restriction?",a:"Do NOT takeoff with undiluted non-monoethylene glycol Type I fluids at -10°C or below. Remove and replace with acceptable fluid. Performance adjustments: increment to VR/V2, factor to CFL, increment to obstacle height, decrement to COF. Effects negligible after 60sec from liftoff."},
+
+// ── WING/SQUADRON SOP ──
+{c:"Wing/Sqdn SOP",q:"What is PL-1 security?",a:"For beat-the-threat alert aircraft. Restricted area within red diamond or barrier (10-60ft from aircraft). Single ECP, area lighting, entrances secured not locked, EAC, EC (PRP if PCM onboard), CBS, I-SRT (5min response), RF (3 personnel, 5min), IDS."},
+{c:"Wing/Sqdn SOP",q:"What is PL-3 security?",a:"Aircraft in restricted area (or transient area at commercial airfield). ECP, area lighting, entrances secured not locked, motorized patrol."},
+{c:"Wing/Sqdn SOP",q:"Safety diamond?",a:"Line 5ft in front of nose to 5ft outboard wingtips to 15ft aft of tail. Vehicles within diamond: safety observer posted, 5mph max."},
+{c:"Wing/Sqdn SOP",q:"Taxi operations?",a:"Fire extinguisher on left or right side. Obstacle clearance <20ft: ground controller. <10ft: towed with wing walkers. Unfamiliar parking: min 4 personnel, one per wingtip, one nose, one tail."},
+{c:"Wing/Sqdn SOP",q:"72-hour rule?",a:"Maintenance Support Teams shall support aircraft away from MOB/FOB in excess of 72 hours. Waiver by Commodore only. Aircraft then has 48 hours to receive MST or land at MOB/FOB."},
+{c:"Wing/Sqdn SOP",q:"Strip alert minimum crew?",a:"Two teams. Start: AC+FE (or FE-T) / 2P+FE / 3P+FE plus one GSE qualified person. Comm: CSO+P30 SUP+P20 op / ACO+P20 SUP+P30 op."},
+{c:"Wing/Sqdn SOP",q:"MC vs AC responsibilities?",a:"MC: positional authority over all crewmembers, planning and execution of TACAMO/ABNCP missions. AC: responsible for safe conduct of flight."},
+{c:"Wing/Sqdn SOP",q:"Pilot training with alert aircraft?",a:"MC initiates through CDO with takeoff/land times, reason, names. CO approves. No conflict with mission events or crew rest. Without comm crew: stay within 25nm local area. Disembarked crew stays on base."},
+{c:"Wing/Sqdn SOP",q:"Minimum runway available per squadron?",a:"Instrument approaches/landings on runways <6,000ft or <150ft wide require CO approval."},
+{c:"Wing/Sqdn SOP",q:"Aircraft airspeed policy?",a:"AC's shall operate at best endurance profile to maximum extent practicable. Safety and mission may dictate higher speeds. Intent: maximize alert times, minimize fuel costs."},
+{c:"Wing/Sqdn SOP",q:"W-602 operations?",a:"Monitor 345.0 MHz and check in using call sign NAVY MERCURY to deconflict with Coast Guard."},
+{c:"Wing/Sqdn SOP",q:"ALTREV coordination squawk codes?",a:"Established aircraft: 29Y A/A. Relieving aircraft: 92Y A/A, maintain 1,000ft higher during turnover."},
+{c:"Wing/Sqdn SOP",q:"Dispersal fuel priorities?",a:"1) Contract fuel FBO (check IFR Sup). 2) Commercial vendor only after emergency/weather divert (brief OPSO, CO approval). May land heavy to minimize fuel purchase if no negative mission impact."},
+{c:"Wing/Sqdn SOP",q:"Anti-hijacking measures?",a:"Resist appropriately. No concessions leading to loss of Navy control. Delay movement for coordination. Engage in conversation, propose alternatives, exploit opportunities to overcome hijacker including lethal force."},
+
+// ── MAINTENANCE ──
+{c:"Maintenance",q:"How long is a turnaround (TA) valid?",a:"24 hours. Checks emergency equipment and general exterior. Not required between repetitive flights (op-stop, hot seat) or cold refuel with same PIC."},
+{c:"Maintenance",q:"How long is a daily valid?",a:"72 hours (no flight, no maintenance beyond servicing). 24 hours after first launch following daily completion. More in-depth than TA."},
+{c:"Maintenance",q:"How long is a preflight valid?",a:"24 hours. Must be done after any maintenance beyond routine servicing."},
+{c:"Maintenance",q:"What is the difference between special and conditional inspections?",a:"Special: scheduled with prescribed interval (7, 14, 28, 56, 84, 224, 230, 364 days). Conditional: unscheduled, triggered by specific condition (post-A/R, post-wire, lightning strike). Window: ±3 days or ±10%."},
+{c:"Maintenance",q:"What is servicing?",a:"Replacing a consumable."},
+{c:"Maintenance",q:"What if you cut an inspection outside the window?",a:"Aircraft is down while being done, and the window rebases."},
+{c:"Maintenance",q:"What is Block 10 (Safe for Flight)?",a:"W&B correct and on file, inspections complete and valid, fuel sampled within 24hrs, no downing discrepancies, oil consumption (16oz in logs)."},
+{c:"Maintenance",q:"What is Block 11 (Acceptance)?",a:"Last 10 flights reviewed, accepting responsibility, W&B correct and on file. Hot seat: off-going AC signs Block 10, oncoming signs Block 11, annotate Hot Seat in Block 8."},
+{c:"Maintenance",q:"MESM Codes?",a:"C: minor degrade TACAMO/ABNCP (ex: oven). D: degrades independent ops (ex: APU bleed). H: prevents ABNCP (ex: ALCS). J: prevents TACAMO/ABNCP (ex: SSPA). L: prevents IMC flight. Z: prevents safe flight (ex: compass)."},
+{c:"Maintenance",q:"SHARP/OOMA logging requirement?",a:"Within 24 hours per 3 SOP."},
+{c:"Maintenance",q:"When is an ASAP required?",a:"Within 24 hours. Also for bird strikes. Same form for ground incidents."},
+{c:"Maintenance",q:"Special inspection items?",a:"7-day: emergency water. 14-day: SDRS download. 28-day: fresh water wash. 56-day: lube. 84-day: air filter, batteries."},
+
+// ── FCF ──
+{c:"FCF",q:"What requires an A Card FCF?",a:"Newly assigned aircraft, factory rework, multiple engine install, components that can't be ground-checked, not flown in 30+ days."},
+{c:"FCF",q:"What requires a B Card FCF?",a:"Fixed flight surfaces installed/reinstalled. Moveable surfaces or flight controls installed, reinstalled, adjusted, or re-rigged."},
+{c:"FCF",q:"3710 FCF requirements?",a:"No passengers, PIC designated FCF pilot by CO (cannot delegate), minimum crew, all fully qualified, critical checks near suitable landing, should be VMC in local area."},
+{c:"FCF",q:"Wing SOP FCF requirements?",a:"Min crew: AC, 2P, E, and qualified observer. AC in left seat. Back-end shakedown: min qualified crew. IP may be in right seat for AC syllabus. Max 250,000lbs without CO approval. After 12hr crew day: deliberate ORM + CO approval. 350nm from MOB/FOB."},
+
+// ── OCONUS ──
+{c:"OCONUS",q:"Foreign Clearance Guide?",a:"Requires NMCI computer. Provides requirements for visiting foreign countries: identification, immunizations, customs, uniform requirements, clearance requirements, mandatory pre-travel training, lead time."},
+{c:"OCONUS",q:"What is APACS?",a:"Aircraft and Personnel Automated Clearance System. Need ISOPREP and SERE dates. May require pre-travel training (e.g., Anti-Terrorism or SERE within 36 months of AOR entry)."},
+{c:"OCONUS",q:"What is OPARS?",a:"Optimum Path Aircraft Routing System. Use NAT tracks. Enter route, tells you FIR boundaries crossed and times. Provides wind-optimized routing."},
+{c:"OCONUS",q:"Over water requirements?",a:"ETP on flights >1,000 miles. HF 1 operational. Over water flights with 25+ personnel not authorized."},
+{c:"OCONUS",q:"Position reporting format?",a:"Position (present), Time (actual at reporting point), Altitude, Position (next compulsory point), Time (ETA at next point), Position (succeeding point)."},
+{c:"OCONUS",q:"Customs requirements?",a:"Arrive when customs/agriculture services available. Form 6059B: individual declaration by each crewmember. Form 7507: General Declaration by AC."},
+{c:"OCONUS",q:"Can I buy non-contract gas?",a:"Only when: mission required stop without military/contract fuel, emergency termination, or alternate airport diversion."},
+
+// ── MISSION PLANNING ──
+{c:"Mission Planning",q:"What is APU fuel consumption?",a:"Start/taxi: ~60 lbs/min. With APU: 70 lbs/min (66 lbs/min with AFC-170)."},
+{c:"Mission Planning",q:"What is minimum on-deck fuel?",a:"10,000 lbs. Engines can operate below 10K but shut down before 2,000 lbs."},
+{c:"Mission Planning",q:"How long to dump fuel?",a:"Full load ~1 hour. ~3,600 lb/min above 80K lbs, decreasing to ~1,600 lb/min below 80K."},
+{c:"Mission Planning",q:"ACN vs PCN?",a:"Aircraft Classification Number must be ≤ Pavement Classification Number for unrestricted operations."},
+{c:"Mission Planning",q:"What chart for fuel to alternate?",a:"Fig 36-2 Short Distance Cruise (up to 500nm, 180K-260K lbs)."},
+{c:"Mission Planning",q:"What chart for bingo fuel?",a:"Fig 31-10 Specific Range Summary (NAM/LB). Convert with Fig 31-26 NAM/LB to Fuel Flow."},
+{c:"Mission Planning",q:"What chart for driftdown?",a:"Fig 31-61 Driftdown Airspeed and Altitude."},
+{c:"Mission Planning",q:"What chart for orbit fuel flow?",a:"Fig 33-2 Orbit Fuel Flow."},
+{c:"Mission Planning",q:"What chart for step climb?",a:"Fig 30-6 Performance Ceiling."},
+{c:"Mission Planning",q:"Slow flight regime?",a:"Speed range between VREF and initial buffet."},
+];
+
+// ═══════════════════
+// APP STATE & LOGIC
+// ═══════════════════
+let state = {
+  mode: 'browse',
+  cat: 'All',
+  flagged: JSON.parse(localStorage.getItem('ac_flagged')||'[]'),
+  known: JSON.parse(localStorage.getItem('ac_known')||'[]'),
+  search: '',
+  showFlaggedOnly: false,
+  shuffle: true,
+  showCatTags: true,
+  quiz10: false,
+  fcIndex: 0,
+  fcRevealed: false,
+};
+
+function save(){
+  localStorage.setItem('ac_flagged',JSON.stringify(state.flagged));
+  localStorage.setItem('ac_known',JSON.stringify(state.known));
+}
+
+function getCategories(){
+  const cats = [...new Set(DB.map(q=>q.c))];
+  return ['All',...cats];
+}
+
+function getFiltered(){
+  let items = DB.map((q,i)=>({...q,idx:i}));
+  if(state.cat!=='All') items=items.filter(q=>q.c===state.cat);
+  if(state.showFlaggedOnly) items=items.filter(q=>state.flagged.includes(q.idx));
+  if(state.search){
+    const s=state.search.toLowerCase();
+    items=items.filter(q=>q.q.toLowerCase().includes(s)||q.a.toLowerCase().includes(s));
+  }
+  return items;
+}
+
+function updateStats(){
+  const filtered=getFiltered();
+  document.getElementById('totalCount').textContent=filtered.length;
+  document.getElementById('knownCount').textContent=filtered.filter(q=>state.known.includes(q.idx)).length;
+  document.getElementById('flagCount').textContent=state.flagged.length;
+  const pct=DB.length?Math.round(state.known.length/DB.length*100):0;
+  document.getElementById('pctCount').textContent=pct+'%';
+}
+
+function renderCats(){
+  const bar=document.getElementById('catBar');
+  const cats=getCategories();
+  bar.innerHTML=cats.map(c=>{
+    const count=c==='All'?DB.length:DB.filter(q=>q.c===c).length;
+    return `<button class="cat-pill${state.cat===c?' active':''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">${c}<span class="count">${count}</span></button>`;
+  }).join('');
+}
+
+function setCat(c){
+  state.cat=c;
+  state.fcIndex=0;
+  renderCats();
+  renderView();
+  updateStats();
+}
+
+function setMode(m){
+  state.mode=m;
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('nav'+m.charAt(0).toUpperCase()+m.slice(1)).classList.add('active');
+  document.getElementById('browseView').style.display=m==='browse'?'block':'none';
+  document.getElementById('flashView').style.display=m==='flash'?'flex':'none';
+  document.getElementById('quizView').style.display=m==='quiz'?'flex':'none';
+  renderView();
+}
+
+// ── BROWSE ──
+function renderBrowse(){
+  const items=getFiltered();
+  const el=document.getElementById('browseView');
+  el.innerHTML=items.map(q=>`
+    <div class="qa-item${state.flagged.includes(q.idx)?' flagged':''}" id="qa${q.idx}">
+      <div class="qa-q" onclick="toggleQA(${q.idx})">${q.q}</div>
+      ${state.showCatTags?`<div class="qa-cat-tag">${q.c}</div>`:''}
+      <div class="qa-a" id="ans${q.idx}">${q.a}</div>
+      <div class="qa-actions">
+        <button class="qa-btn${state.flagged.includes(q.idx)?' flagged':''}" onclick="toggleFlag(${q.idx})">★ Flag</button>
+        <button class="qa-btn${state.known.includes(q.idx)?' known':''}" onclick="toggleKnown(${q.idx})">✓ Known</button>
+      </div>
+    </div>
+  `).join('');
+}
+function toggleQA(idx){
+  const el=document.getElementById('qa'+idx);
+  el.classList.toggle('open');
+}
+function toggleFlag(idx){
+  const i=state.flagged.indexOf(idx);
+  if(i>-1)state.flagged.splice(i,1);else state.flagged.push(idx);
+  save();renderView();updateStats();
+}
+function toggleKnown(idx){
+  const i=state.known.indexOf(idx);
+  if(i>-1)state.known.splice(i,1);else state.known.push(idx);
+  save();renderView();updateStats();
+}
+
+// ── FLASHCARDS ──
+let fcDeck=[];
+function buildFCDeck(){
+  fcDeck=getFiltered();
+  if(state.shuffle)fcDeck.sort(()=>Math.random()-.5);
+  if(state.fcIndex>=fcDeck.length)state.fcIndex=0;
+}
+function renderFlash(){
+  buildFCDeck();
+  if(!fcDeck.length){document.getElementById('fcQ').textContent='No questions match your filters.';return;}
+  const q=fcDeck[state.fcIndex];
+  document.getElementById('fcCat').textContent=q.c;
+  document.getElementById('fcQ').textContent=q.q;
+  document.getElementById('fcA').textContent=q.a;
+  document.getElementById('fcA').classList.remove('show');
+  document.getElementById('fcFlag').classList.toggle('active',state.flagged.includes(q.idx));
+  document.getElementById('fcFlag').textContent=state.flagged.includes(q.idx)?'★':'☆';
+  document.getElementById('fcCounter').textContent=`${state.fcIndex+1} / ${fcDeck.length}`;
+  state.fcRevealed=false;
+}
+document.getElementById('flashcard').addEventListener('click',function(e){
+  if(e.target.closest('.fc-flag'))return;
+  document.getElementById('fcA').classList.toggle('show');
+  state.fcRevealed=!state.fcRevealed;
+});
+function fcNext(){state.fcIndex=(state.fcIndex+1)%fcDeck.length;renderFlash();}
+function fcPrev(){state.fcIndex=(state.fcIndex-1+fcDeck.length)%fcDeck.length;renderFlash();}
+function fcKnow(){
+  if(fcDeck.length){
+    const q=fcDeck[state.fcIndex];
+    if(!state.known.includes(q.idx)){state.known.push(q.idx);save();}
+  }
+  fcNext();updateStats();
+}
+function toggleFlagCurrent(){
+  if(fcDeck.length){toggleFlag(fcDeck[state.fcIndex].idx);}
+}
+
+// ── QUIZ ──
+let quizDeck=[];let quizIdx=0;
+function renderQuiz(){
+  let items=getFiltered();
+  if(state.shuffle)items.sort(()=>Math.random()-.5);
+  if(state.quiz10)items=items.slice(0,10);
+  quizDeck=items;quizIdx=0;
+  const el=document.getElementById('quizView');
+  el.innerHTML=`<div class="quiz-progress"><div class="quiz-bar" id="quizBar" style="width:0%"></div></div>`;
+  quizDeck.forEach((q,i)=>{
+    el.innerHTML+=`
+      <div class="quiz-card" id="qzc${i}">
+        <div class="quiz-label">${q.c} — Q${i+1}/${quizDeck.length}</div>
+        <div class="quiz-q">${q.q}</div>
+        <button class="quiz-reveal-btn" id="qzr${i}" onclick="revealQuiz(${i})">Tap to reveal answer</button>
+        <div class="quiz-answer" id="qza${i}">${q.a}</div>
+        <div class="quiz-rate" id="qzrt${i}">
+          <button class="qr-miss" onclick="rateQuiz(${i},'miss')">✗ Missed</button>
+          <button class="qr-ok" onclick="rateQuiz(${i},'ok')">~ Partial</button>
+          <button class="qr-got" onclick="rateQuiz(${i},'got')">✓ Got it</button>
+        </div>
+      </div>`;
+  });
+}
+function revealQuiz(i){
+  document.getElementById('qza'+i).classList.add('show');
+  document.getElementById('qzrt'+i).classList.add('show');
+  document.getElementById('qzr'+i).style.display='none';
+}
+function rateQuiz(i,r){
+  const q=quizDeck[i];
+  if(r==='got'&&!state.known.includes(q.idx)){state.known.push(q.idx);save();}
+  if(r==='miss'){
+    const ki=state.known.indexOf(q.idx);if(ki>-1){state.known.splice(ki,1);save();}
+    if(!state.flagged.includes(q.idx)){state.flagged.push(q.idx);save();}
+  }
+  quizIdx++;
+  const pct=Math.round(quizIdx/quizDeck.length*100);
+  document.getElementById('quizBar').style.width=pct+'%';
+  updateStats();
+}
+
+function renderView(){
+  if(state.mode==='browse')renderBrowse();
+  else if(state.mode==='flash')renderFlash();
+  else if(state.mode==='quiz')renderQuiz();
+}
+
+function toggleFlagged(){
+  state.showFlaggedOnly=!state.showFlaggedOnly;
+  document.getElementById('flagFilter').classList.toggle('active',state.showFlaggedOnly);
+  state.fcIndex=0;
+  renderView();updateStats();
+}
+
+// ── SEARCH ──
+document.getElementById('searchInput').addEventListener('input',function(e){
+  state.search=e.target.value;
+  state.fcIndex=0;
+  renderView();updateStats();
+});
+
+// ── SETTINGS ──
+function showSettings(){document.getElementById('settingsOverlay').classList.add('show');}
+function hideSettings(){document.getElementById('settingsOverlay').classList.remove('show');}
+function toggleShuffle(el){state.shuffle=!state.shuffle;el.classList.toggle('on',state.shuffle);}
+function toggleCatTags(el){state.showCatTags=!state.showCatTags;el.classList.toggle('on',state.showCatTags);renderView();}
+function toggleQuiz10(el){state.quiz10=!state.quiz10;el.classList.toggle('on',state.quiz10);}
+function resetProgress(){
+  if(confirm('Reset all progress? This clears known and flagged items.')){
+    state.known=[];state.flagged=[];save();renderView();updateStats();
+  }
+}
+
+// ── SWIPE SUPPORT ──
+let touchStartX=0;
+document.getElementById('flashcard').addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;},{passive:true});
+document.getElementById('flashcard').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  if(Math.abs(dx)>60){
+    if(dx<0)fcNext();else fcPrev();
+  }
+},{passive:true});
+
+// ── PWA ──
+if('serviceWorker'in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+// ── INIT ──
+renderCats();
+renderView();
+updateStats();
+</script>
+</body>
+</html>
