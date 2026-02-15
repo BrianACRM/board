@@ -1,8 +1,9 @@
 {
   "name": "AC Board Study Tool",
   "short_name": "AC Board",
-  "description": "E-6B Aircraft Commander Board Study Tool",
-  "start_url": "/index.html",
+  "description": "Aircraft Commander Board Study Tool",
+  "start_url": "/board/",
+"scope": "/board/",
   "display": "standalone",
   "background_color": "#0a0e1a",
   "theme_color": "#0a0e1a",
