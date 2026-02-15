@@ -747,8 +747,10 @@ document.getElementById('flashcard').addEventListener('touchend',e=>{
 },{passive:true});
 
 // ── PWA ──
-if('serviceWorker'in navigator){
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js', {scope: './'}).catch(function(){});
+  });
 }
 
 // ── INIT ──
