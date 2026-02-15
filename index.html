@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-title" content="AC Board">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0a0e1a">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+<link rel="manifest" href="/board/manifest.json">
+<link rel="apple-touch-icon" href="/board/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/board/icon-192.png">
 <title>AC Board Study Tool</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -749,7 +749,7 @@ document.getElementById('flashcard').addEventListener('touchend',e=>{
 // ── PWA ──
 if('serviceWorker' in navigator){
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js', {scope: './'}).catch(function(){});
+    navigator.serviceWorker.register('/board/sw.js', {scope: '/board/'}).catch(function(){});
   });
 }
 
